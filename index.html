@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Контроль привычки</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --text-color: #ffffff;
+            --btn-color: #ff9800; /* Оранжевый по умолчанию */
+        }
+
+        body {
+            margin: 0;
+            font-family: sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Меню (Три полоски) */
+        .menu-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            cursor: pointer;
+            z-index: 100;
+        }
+        .menu-btn div {
+            width: 30px;
+            height: 4px;
+            background-color: var(--text-color);
+            margin: 5px 0;
+            border-radius: 2px;
+        }
+
+        /* Панель настроек */
+        .settings {
+            position: fixed;
+            top: 0;
+            left: -250px;
+            width: 200px;
+            height: 100%;
+            background: #1e1e1e;
+            padding: 60px 20px;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.5);
+            transition: 0.3s;
+            z-index: 90;
+        }
+        .settings.active { left: 0; }
+        .settings h3 { font-size: 18px; border-bottom: 1px solid #444; padding-bottom: 5px; }
+        .opt-group { margin-bottom: 20px; }
+        .color-dot { width: 30px; height: 30px; border-radius: 50%; display: inline-block; cursor: pointer; margin: 5px; border: 2px solid #fff; }
+
+        /* Основной контент */
+        .date-display { font-size: 1.2rem; margin-bottom: 10px; opacity: 0.8; }
+        .counter { font-size: 5rem; font-weight: bold; margin-bottom: 20px; }
+        
+        .main-btn {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            border: none;
+            background-color: var(--btn-color);
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .main-btn:active { transform: scale(0.95); }
+
+        .info { margin-top: 30px; text-align: center; font-size: 0.9rem; color: gray; }
+    </style>
+</head>
+<body>
+
+    <div class="menu-btn" onclick="toggleSettings()">
+        <div></div><div></div><div></div>
+    </div>
+
+    <div class="settings" id="settingsPanel">
+        <div class="opt-group">
+            <h3>Фон</h3>
+            <button onclick="setTheme('dark')">Темный</button>
+            <button onclick="setTheme('light')">Светлый</button>
+        </div>
+        <div class="opt-group">
+            <h3>Цвет кнопки</h3>
+            <div class="color-dot" style="background: #ff9800;" onclick="setBtnColor('#ff9800')"></div>
+            <div class="color-dot" style="background: #4caf50;" onclick="setBtnColor('#4caf50')"></div>
+            <div class="color-dot" style="background: #2196f3;" onclick="setBtnColor('#2196f3')"></div>
+            <div class="color-dot" style="background: #e91e63;" onclick="setBtnColor('#e91e63')"></div>
+        </div>
+        <button onclick="toggleSettings()" style="margin-top: 20px;">Закрыть</button>
+    </div>
+
+    <div class="date-display" id="currentDate">Дата</div>
+    <div class="counter" id="countDisplay">0</div>
+    <button class="main-btn" onclick="addSmoke()">ЕЩЁ ОДНА</button>
+    
+    <div class="info">
+        Нажмите на кнопку, когда выкурили сигарету.<br>
+        Счётчик обнулится сам завтра.
+    </div>
+
+    <script>
+        let data = JSON.parse(localStorage.getItem('smokeData')) || {};
+        let config = JSON.parse(localStorage.getItem('smokeConfig')) || { theme: 'dark', btnColor: '#ff9800' };
+
+        function updateDisplay() {
+            const today = new Date().toLocaleDateString('ru-RU');
+            document.getElementById('currentDate').innerText = today;
+            
+            // Если для сегодня еще нет записи — создаем
+            if (!data[today]) {
+                data[today] = 0;
+                saveData();
+            }
+            
+            document.getElementById('countDisplay').innerText = data[today];
+            applyConfig();
+        }
+
+        function addSmoke() {
+            const today = new Date().toLocaleDateString('ru-RU');
+            data[today]++;
+            document.getElementById('countDisplay').innerText = data[today];
+            saveData();
+            
+            // Легкая вибрация, если поддерживается телефоном
+            if (navigator.vibrate) navigator.vibrate(50);
+        }
+
+        function saveData() {
+            localStorage.setItem('smokeData', JSON.stringify(data));
+        }
+
+        function toggleSettings() {
+            document.getElementById('settingsPanel').classList.toggle('active');
+        }
+
+        function setTheme(theme) {
+            config.theme = theme;
+            applyConfig();
+            localStorage.setItem('smokeConfig', JSON.stringify(config));
+        }
+
+        function setBtnColor(color) {
+            config.btnColor = color;
+            applyConfig();
+            localStorage.setItem('smokeConfig', JSON.stringify(config));
+        }
+
+        function applyConfig() {
+            const root = document.documentElement;
+            if (config.theme === 'dark') {
+                root.style.setProperty('--bg-color', '#121212');
+                root.style.setProperty('--text-color', '#ffffff');
+            } else {
+                root.style.setProperty('--bg-color', '#ffffff');
+                root.style.setProperty('--text-color', '#121212');
+            }
+            root.style.setProperty('--btn-color', config.btnColor);
+        }
+
+        // Проверка смены дня каждую минуту
+        setInterval(updateDisplay, 60000);
+        
+        // Первый запуск
+        updateDisplay();
+    </script>
+</body>
+</html>
