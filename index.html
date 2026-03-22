@@ -9,6 +9,7 @@
             --bg-color: #121212;
             --text-color: #ffffff;
             --btn-color: #ff9800;
+            --overlimit-color: #ff4444; /* Цвет при перелимите */
         }
 
         body {
@@ -72,7 +73,8 @@
         #dayOfWeek { font-size: 1rem; color: gray; text-transform: capitalize; }
         
         .target-info { font-size: 0.9rem; margin-bottom: 10px; color: #888; }
-        .counter { font-size: 6rem; font-weight: bold; margin: 5px 0; }
+        .counter { font-size: 6rem; font-weight: bold; margin: 5px 0; transition: color 0.3s; }
+        .counter.overlimit { color: var(--overlimit-color); }
         
         .main-btn {
             width: 220px;
@@ -182,12 +184,12 @@
             const now = new Date();
             const todayStr = now.toLocaleDateString('ru-RU');
             
+            let currentTarget = config.target;
             if (config.interval > 0) {
                 const diffTime = Math.abs(now.getTime() - config.startDate);
                 const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
                 const reductions = Math.floor(diffDays / config.interval);
-                let currentTarget = config.target - reductions;
-                if (currentTarget < 0) currentTarget = 0;
+                currentTarget = Math.max(0, config.target - reductions);
                 document.getElementById('targetDisplay').innerText = `Лимит на сегодня: ${currentTarget}`;
             } else {
                 document.getElementById('targetDisplay').innerText = `Лимит: ${config.target}`;
@@ -199,7 +201,16 @@
             const d = new Date(parts[2], parts[1]-1, parts[0]);
             document.getElementById('dayOfWeek').innerText = d.toLocaleDateString('ru-RU', { weekday: 'long' });
 
-            document.getElementById('countDisplay').innerText = data[viewingDate] || 0;
+            const currentCount = data[viewingDate] || 0;
+            const counterElement = document.getElementById('countDisplay');
+            counterElement.innerText = currentCount;
+            
+            // Логика покраснения цифр
+            if (currentCount > currentTarget) {
+                counterElement.classList.add('overlimit');
+            } else {
+                counterElement.classList.remove('overlimit');
+            }
             
             const isToday = (viewingDate === todayStr);
             document.getElementById('smokeBtn').style.display = isToday ? 'block' : 'none';
