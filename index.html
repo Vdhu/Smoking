@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Контроль папы</title>
+    <title>Бросаем курить</title>
     <style>
         :root {
             --bg-color: #121212;
@@ -23,7 +23,7 @@
             justify-content: center;
             height: 100vh;
             overflow: hidden;
-            -webkit-tap-highlight-color: transparent; /* Убирает синий квадрат при нажатии */
+            -webkit-tap-highlight-color: transparent;
         }
 
         .menu-btn {
@@ -55,7 +55,7 @@
             overflow-y: auto;
         }
         .settings.active { left: 0; }
-        .settings h3 { font-size: 16px; margin: 15px 0 10px; border-bottom: 1px solid #444; }
+        .settings h3 { font-size: 16px; margin: 15px 0 10px; border-bottom: 1px solid #444; color: #eee; }
 
         input, select {
             width: 100%;
@@ -71,8 +71,8 @@
         #currentDate { font-size: 1.2rem; font-weight: bold; }
         #dayOfWeek { font-size: 1rem; color: gray; text-transform: capitalize; }
         
-        .target-info { font-size: 0.9rem; margin-bottom: 10px; color: #aaa; }
-        .counter { font-size: 6rem; font-weight: bold; margin: 10px 0; }
+        .target-info { font-size: 0.9rem; margin-bottom: 10px; color: #888; }
+        .counter { font-size: 6rem; font-weight: bold; margin: 5px 0; }
         
         .main-btn {
             width: 220px;
@@ -85,12 +85,27 @@
             font-weight: bold;
             box-shadow: 0 8px 15px rgba(0,0,0,0.4);
             cursor: pointer;
-            outline: none; /* Убирает рамку */
+            outline: none;
             user-select: none;
+            margin-bottom: 30px;
         }
         .main-btn:active { transform: scale(0.96); opacity: 0.9; }
 
+        .undo-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: #777;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            outline: none;
+            transition: 0.2s;
+        }
+        .undo-btn:active { background: rgba(255, 255, 255, 0.2); color: #fff; }
+
         .color-dot { width: 25px; height: 25px; border-radius: 50%; display: inline-block; cursor: pointer; margin: 5px; border: 2px solid #fff; }
+        .theme-btns button { width: 45%; padding: 8px; cursor: pointer; border-radius: 5px; border: none; }
     </style>
 </head>
 <body>
@@ -100,6 +115,8 @@
     </div>
 
     <div class="settings" id="settingsPanel">
+        <h2 style="font-size: 1.2rem; margin-top: 0;">Настройки</h2>
+        
         <div class="opt-group">
             <h3>Просмотр истории</h3>
             <input type="date" id="historyDate" onchange="viewHistory()">
@@ -111,7 +128,7 @@
         </div>
 
         <div class="opt-group">
-            <h3>Снижать лимит на 1 шт. каждые:</h3>
+            <h3>Снижать на 1 шт. каждые:</h3>
             <select id="reduceInterval" onchange="updateInterval()">
                 <option value="0">Не снижать</option>
                 <option value="1">День</option>
@@ -123,8 +140,10 @@
 
         <div class="opt-group">
             <h3>Тема</h3>
-            <button onclick="setTheme('dark')">Темная</button>
-            <button onclick="setTheme('light')">Светлая</button>
+            <div class="theme-btns">
+                <button onclick="setTheme('dark')">Темная</button>
+                <button onclick="setTheme('light')">Светлая</button>
+            </div>
         </div>
 
         <div class="opt-group">
@@ -135,16 +154,17 @@
             <div class="color-dot" style="background: #f44336;" onclick="setBtnColor('#f44336')"></div>
         </div>
         <br>
-        <button onclick="toggleSettings()" style="width:100%; padding: 10px;">Применить</button>
+        <button onclick="toggleSettings()" style="width:100%; padding: 12px; background: #444; color: white; border: none; border-radius: 8px;">Закрыть</button>
     </div>
 
     <div class="date-container">
         <div id="dayOfWeek"></div>
         <div id="currentDate"></div>
     </div>
-    <div class="target-info" id="targetDisplay">Цель: --</div>
+    <div class="target-info" id="targetDisplay">Лимит: --</div>
     <div class="counter" id="countDisplay">0</div>
     <button class="main-btn" id="smokeBtn" onclick="addSmoke()">ВЫКУРИЛ</button>
+    <button class="undo-btn" id="undoBtn" onclick="undoLast()">Отменить нажатие</button>
 
     <script>
         let data = JSON.parse(localStorage.getItem('smokeData')) || {};
@@ -162,7 +182,6 @@
             const now = new Date();
             const todayStr = now.toLocaleDateString('ru-RU');
             
-            // Расчет текущего лимита с учетом снижения
             if (config.interval > 0) {
                 const diffTime = Math.abs(now.getTime() - config.startDate);
                 const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
@@ -176,15 +195,15 @@
 
             document.getElementById('currentDate').innerText = viewingDate;
             
-            // Показ дня недели для выбранной даты
             const parts = viewingDate.split('.');
             const d = new Date(parts[2], parts[1]-1, parts[0]);
             document.getElementById('dayOfWeek').innerText = d.toLocaleDateString('ru-RU', { weekday: 'long' });
 
             document.getElementById('countDisplay').innerText = data[viewingDate] || 0;
             
-            // Скрываем кнопку, если смотрим историю
-            document.getElementById('smokeBtn').style.display = (viewingDate === todayStr) ? 'block' : 'none';
+            const isToday = (viewingDate === todayStr);
+            document.getElementById('smokeBtn').style.display = isToday ? 'block' : 'none';
+            document.getElementById('undoBtn').style.display = isToday ? 'block' : 'none';
             
             applyConfig();
         }
@@ -195,6 +214,16 @@
             saveData();
             updateDisplay();
             if (navigator.vibrate) navigator.vibrate(60);
+        }
+
+        function undoLast() {
+            const today = new Date().toLocaleDateString('ru-RU');
+            if (data[today] && data[today] > 0) {
+                data[today] -= 1;
+                saveData();
+                updateDisplay();
+                if (navigator.vibrate) navigator.vibrate(40);
+            }
         }
 
         function viewHistory() {
@@ -208,8 +237,8 @@
         }
 
         function updateTarget() {
-            config.target = parseInt(document.getElementById('targetInput').value);
-            config.startDate = new Date().getTime(); // Сброс отсчета при смене цели
+            config.target = parseInt(document.getElementById('targetInput').value) || 0;
+            config.startDate = new Date().getTime();
             saveConfig();
             updateDisplay();
         }
@@ -243,7 +272,7 @@
                 root.style.setProperty('--bg-color', '#121212');
                 root.style.setProperty('--text-color', '#ffffff');
             } else {
-                root.style.setProperty('--bg-color', '#f0f0f0');
+                root.style.setProperty('--bg-color', '#f9f9f9');
                 root.style.setProperty('--text-color', '#121212');
             }
             root.style.setProperty('--btn-color', config.btnColor);
@@ -255,10 +284,6 @@
         function saveConfig() { localStorage.setItem('smokeConfig', JSON.stringify(config)); }
 
         updateDisplay();
-        setInterval(() => {
-            const today = new Date().toLocaleDateString('ru-RU');
-            if (viewingDate === today) updateDisplay();
-        }, 60000);
     </script>
 </body>
 </html>
