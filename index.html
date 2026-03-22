@@ -2,18 +2,18 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Контроль привычки</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Контроль папы</title>
     <style>
         :root {
             --bg-color: #121212;
             --text-color: #ffffff;
-            --btn-color: #ff9800; /* Оранжевый по умолчанию */
+            --btn-color: #ff9800;
         }
 
         body {
             margin: 0;
-            font-family: sans-serif;
+            font-family: 'Segoe UI', Roboto, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             transition: 0.3s;
@@ -23,9 +23,9 @@
             justify-content: center;
             height: 100vh;
             overflow: hidden;
+            -webkit-tap-highlight-color: transparent; /* Убирает синий квадрат при нажатии */
         }
 
-        /* Меню (Три полоски) */
         .menu-btn {
             position: absolute;
             top: 20px;
@@ -34,51 +34,63 @@
             z-index: 100;
         }
         .menu-btn div {
-            width: 30px;
-            height: 4px;
+            width: 25px;
+            height: 3px;
             background-color: var(--text-color);
             margin: 5px 0;
             border-radius: 2px;
         }
 
-        /* Панель настроек */
         .settings {
             position: fixed;
             top: 0;
-            left: -250px;
-            width: 200px;
+            left: -280px;
+            width: 240px;
             height: 100%;
             background: #1e1e1e;
             padding: 60px 20px;
             box-shadow: 2px 0 10px rgba(0,0,0,0.5);
             transition: 0.3s;
             z-index: 90;
+            overflow-y: auto;
         }
         .settings.active { left: 0; }
-        .settings h3 { font-size: 18px; border-bottom: 1px solid #444; padding-bottom: 5px; }
-        .opt-group { margin-bottom: 20px; }
-        .color-dot { width: 30px; height: 30px; border-radius: 50%; display: inline-block; cursor: pointer; margin: 5px; border: 2px solid #fff; }
+        .settings h3 { font-size: 16px; margin: 15px 0 10px; border-bottom: 1px solid #444; }
 
-        /* Основной контент */
-        .date-display { font-size: 1.2rem; margin-bottom: 10px; opacity: 0.8; }
-        .counter { font-size: 5rem; font-weight: bold; margin-bottom: 20px; }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            background: #333;
+            border: 1px solid #555;
+            color: white;
+            border-radius: 5px;
+        }
+
+        .date-container { text-align: center; margin-bottom: 5px; }
+        #currentDate { font-size: 1.2rem; font-weight: bold; }
+        #dayOfWeek { font-size: 1rem; color: gray; text-transform: capitalize; }
+        
+        .target-info { font-size: 0.9rem; margin-bottom: 10px; color: #aaa; }
+        .counter { font-size: 6rem; font-weight: bold; margin: 10px 0; }
         
         .main-btn {
-            width: 200px;
-            height: 200px;
+            width: 220px;
+            height: 220px;
             border-radius: 50%;
             border: none;
             background-color: var(--btn-color);
             color: white;
-            font-size: 1.5rem;
+            font-size: 1.4rem;
             font-weight: bold;
-            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.4);
             cursor: pointer;
-            transition: transform 0.1s;
+            outline: none; /* Убирает рамку */
+            user-select: none;
         }
-        .main-btn:active { transform: scale(0.95); }
+        .main-btn:active { transform: scale(0.96); opacity: 0.9; }
 
-        .info { margin-top: 30px; text-align: center; font-size: 0.9rem; color: gray; }
+        .color-dot { width: 25px; height: 25px; border-radius: 50%; display: inline-block; cursor: pointer; margin: 5px; border: 2px solid #fff; }
     </style>
 </head>
 <body>
@@ -89,75 +101,140 @@
 
     <div class="settings" id="settingsPanel">
         <div class="opt-group">
-            <h3>Фон</h3>
-            <button onclick="setTheme('dark')">Темный</button>
-            <button onclick="setTheme('light')">Светлый</button>
+            <h3>Просмотр истории</h3>
+            <input type="date" id="historyDate" onchange="viewHistory()">
         </div>
+
+        <div class="opt-group">
+            <h3>Цель (сигарет в день)</h3>
+            <input type="number" id="targetInput" value="20" onchange="updateTarget()">
+        </div>
+
+        <div class="opt-group">
+            <h3>Снижать лимит на 1 шт. каждые:</h3>
+            <select id="reduceInterval" onchange="updateInterval()">
+                <option value="0">Не снижать</option>
+                <option value="1">День</option>
+                <option value="3">3 дня</option>
+                <option value="7" selected>Неделю</option>
+                <option value="30">Месяц</option>
+            </select>
+        </div>
+
+        <div class="opt-group">
+            <h3>Тема</h3>
+            <button onclick="setTheme('dark')">Темная</button>
+            <button onclick="setTheme('light')">Светлая</button>
+        </div>
+
         <div class="opt-group">
             <h3>Цвет кнопки</h3>
             <div class="color-dot" style="background: #ff9800;" onclick="setBtnColor('#ff9800')"></div>
             <div class="color-dot" style="background: #4caf50;" onclick="setBtnColor('#4caf50')"></div>
             <div class="color-dot" style="background: #2196f3;" onclick="setBtnColor('#2196f3')"></div>
-            <div class="color-dot" style="background: #e91e63;" onclick="setBtnColor('#e91e63')"></div>
+            <div class="color-dot" style="background: #f44336;" onclick="setBtnColor('#f44336')"></div>
         </div>
-        <button onclick="toggleSettings()" style="margin-top: 20px;">Закрыть</button>
+        <br>
+        <button onclick="toggleSettings()" style="width:100%; padding: 10px;">Применить</button>
     </div>
 
-    <div class="date-display" id="currentDate">Дата</div>
-    <div class="counter" id="countDisplay">0</div>
-    <button class="main-btn" onclick="addSmoke()">ЕЩЁ ОДНА</button>
-    
-    <div class="info">
-        Нажмите на кнопку, когда выкурили сигарету.<br>
-        Счётчик обнулится сам завтра.
+    <div class="date-container">
+        <div id="dayOfWeek"></div>
+        <div id="currentDate"></div>
     </div>
+    <div class="target-info" id="targetDisplay">Цель: --</div>
+    <div class="counter" id="countDisplay">0</div>
+    <button class="main-btn" id="smokeBtn" onclick="addSmoke()">ВЫКУРИЛ</button>
 
     <script>
         let data = JSON.parse(localStorage.getItem('smokeData')) || {};
-        let config = JSON.parse(localStorage.getItem('smokeConfig')) || { theme: 'dark', btnColor: '#ff9800' };
+        let config = JSON.parse(localStorage.getItem('smokeConfig')) || { 
+            theme: 'dark', 
+            btnColor: '#ff9800', 
+            target: 20, 
+            interval: 7,
+            startDate: new Date().getTime()
+        };
+
+        let viewingDate = new Date().toLocaleDateString('ru-RU');
 
         function updateDisplay() {
-            const today = new Date().toLocaleDateString('ru-RU');
-            document.getElementById('currentDate').innerText = today;
+            const now = new Date();
+            const todayStr = now.toLocaleDateString('ru-RU');
             
-            // Если для сегодня еще нет записи — создаем
-            if (!data[today]) {
-                data[today] = 0;
-                saveData();
+            // Расчет текущего лимита с учетом снижения
+            if (config.interval > 0) {
+                const diffTime = Math.abs(now.getTime() - config.startDate);
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                const reductions = Math.floor(diffDays / config.interval);
+                let currentTarget = config.target - reductions;
+                if (currentTarget < 0) currentTarget = 0;
+                document.getElementById('targetDisplay').innerText = `Лимит на сегодня: ${currentTarget}`;
+            } else {
+                document.getElementById('targetDisplay').innerText = `Лимит: ${config.target}`;
             }
+
+            document.getElementById('currentDate').innerText = viewingDate;
             
-            document.getElementById('countDisplay').innerText = data[today];
+            // Показ дня недели для выбранной даты
+            const parts = viewingDate.split('.');
+            const d = new Date(parts[2], parts[1]-1, parts[0]);
+            document.getElementById('dayOfWeek').innerText = d.toLocaleDateString('ru-RU', { weekday: 'long' });
+
+            document.getElementById('countDisplay').innerText = data[viewingDate] || 0;
+            
+            // Скрываем кнопку, если смотрим историю
+            document.getElementById('smokeBtn').style.display = (viewingDate === todayStr) ? 'block' : 'none';
+            
             applyConfig();
         }
 
         function addSmoke() {
             const today = new Date().toLocaleDateString('ru-RU');
-            data[today]++;
-            document.getElementById('countDisplay').innerText = data[today];
+            data[today] = (data[today] || 0) + 1;
             saveData();
-            
-            // Легкая вибрация, если поддерживается телефоном
-            if (navigator.vibrate) navigator.vibrate(50);
+            updateDisplay();
+            if (navigator.vibrate) navigator.vibrate(60);
         }
 
-        function saveData() {
-            localStorage.setItem('smokeData', JSON.stringify(data));
+        function viewHistory() {
+            const inputDate = document.getElementById('historyDate').value;
+            if (inputDate) {
+                const d = new Date(inputDate);
+                viewingDate = d.toLocaleDateString('ru-RU');
+                updateDisplay();
+                toggleSettings();
+            }
+        }
+
+        function updateTarget() {
+            config.target = parseInt(document.getElementById('targetInput').value);
+            config.startDate = new Date().getTime(); // Сброс отсчета при смене цели
+            saveConfig();
+            updateDisplay();
+        }
+
+        function updateInterval() {
+            config.interval = parseInt(document.getElementById('reduceInterval').value);
+            config.startDate = new Date().getTime();
+            saveConfig();
+            updateDisplay();
         }
 
         function toggleSettings() {
             document.getElementById('settingsPanel').classList.toggle('active');
         }
 
-        function setTheme(theme) {
-            config.theme = theme;
-            applyConfig();
-            localStorage.setItem('smokeConfig', JSON.stringify(config));
-        }
-
         function setBtnColor(color) {
             config.btnColor = color;
+            saveConfig();
             applyConfig();
-            localStorage.setItem('smokeConfig', JSON.stringify(config));
+        }
+
+        function setTheme(theme) {
+            config.theme = theme;
+            saveConfig();
+            applyConfig();
         }
 
         function applyConfig() {
@@ -166,17 +243,22 @@
                 root.style.setProperty('--bg-color', '#121212');
                 root.style.setProperty('--text-color', '#ffffff');
             } else {
-                root.style.setProperty('--bg-color', '#ffffff');
+                root.style.setProperty('--bg-color', '#f0f0f0');
                 root.style.setProperty('--text-color', '#121212');
             }
             root.style.setProperty('--btn-color', config.btnColor);
+            document.getElementById('targetInput').value = config.target;
+            document.getElementById('reduceInterval').value = config.interval;
         }
 
-        // Проверка смены дня каждую минуту
-        setInterval(updateDisplay, 60000);
-        
-        // Первый запуск
+        function saveData() { localStorage.setItem('smokeData', JSON.stringify(data)); }
+        function saveConfig() { localStorage.setItem('smokeConfig', JSON.stringify(config)); }
+
         updateDisplay();
+        setInterval(() => {
+            const today = new Date().toLocaleDateString('ru-RU');
+            if (viewingDate === today) updateDisplay();
+        }, 60000);
     </script>
 </body>
 </html>
